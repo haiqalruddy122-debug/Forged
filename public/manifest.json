@@ -1,0 +1,10 @@
+{
+  "name": "Forge Gym",
+  "short_name": "Forge",
+  "description": "Your personal gym tracker",
+  "start_url": "/Forged/",
+  "display": "standalone",
+  "background_color": "#F5F5F5",
+  "theme_color": "#FF5722",
+  "orientation": "portrait"
+}
