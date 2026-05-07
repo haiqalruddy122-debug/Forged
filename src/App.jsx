@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from “react”;
+import { useState } from “react”;
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
 const P = { bw: 85, lbm: 60, fat: 25, height: 170, fatGoal: 10, age: 30 };
@@ -170,15 +170,12 @@ const FOODS_DB = [
 
 const SK = “forge_v5”;
 
-// Persistent storage helpers
-async function loadStore() {
-try {
-const r = await window.storage.get(SK);
-return r ? JSON.parse(r.value) : {};
-} catch { return {}; }
+// localStorage helpers — works in any browser
+function loadStore() {
+try { return JSON.parse(localStorage.getItem(SK) || “{}”); } catch { return {}; }
 }
-async function saveStore(d) {
-try { await window.storage.set(SK, JSON.stringify(d)); } catch {}
+function saveStore(d) {
+try { localStorage.setItem(SK, JSON.stringify(d)); } catch {}
 }
 
 function toKey(){ return new Date().toISOString().split(“T”)[0]; }
@@ -186,40 +183,28 @@ function dayName(){ return [“sunday”,“monday”,“tuesday”,“wednesday
 
 export default function Forge() {
 const [tab,     setTab]    = useState(“home”);
-const [store,   setStore]  = useState({});
-const [loading, setLoading]= useState(true);
+const [store,   setStore]  = useState(() => loadStore());
+const [loading, setLoading]= useState(false);
 
 const todayKey = toKey();
 const curDay   = dayName();
 const isRest   = REST_DAYS.includes(curDay);
 const todayPlan= PLAN[curDay];
 
-// Load from persistent storage on mount
-useEffect(() => {
-loadStore().then(data => {
-setStore(data);
-setSession(data?.sessions?.[todayKey] || {});
-setMeals(data?.meals?.[todayKey] || []);
-setWater(data?.water?.[todayKey] || 0);
-setSleep(data?.sleep?.[todayKey] || {bedtime:””,wake:””,hours:0});
-setLoading(false);
-});
-}, []);
-
 // Workout
-const [session, setSession] = useState({});
+const [session, setSession] = useState(() => loadStore()?.sessions?.[toKey()] || {});
 const [openEx,  setOpenEx]  = useState(null);
 const [planDay, setPlanDay] = useState(() => DAYS_ORDER.includes(dayName()) ? dayName() : “monday”);
 
 // Food
-const [meals,   setMeals]   = useState([]);
+const [meals,   setMeals]   = useState(() => loadStore()?.meals?.[toKey()] || []);
 const [foodQ,   setFoodQ]   = useState(””);
 const [showFood,setShowFood]= useState(false);
 const [customF, setCF]      = useState({name:””,cal:””,p:””,c:””,f:””});
 
 // Water & Sleep
-const [water,   setWater]   = useState(0);
-const [sleep,   setSleep]   = useState({bedtime:””,wake:””,hours:0});
+const [water,   setWater]   = useState(() => loadStore()?.water?.[toKey()] || 0);
+const [sleep,   setSleep]   = useState(() => loadStore()?.sleep?.[toKey()] || {bedtime:””,wake:””,hours:0});
 const [bedInput,setBedInput]= useState(””);
 const [wakeInput,setWakeInput]= useState(””);
 
@@ -327,19 +312,6 @@ return (
 
 ```
   {toast && <div className="toast" style={{background:toast.c,color:"#fff"}}>{toast.msg}</div>}
-
-  {/* ─── LOADING SCREEN ─── */}
-  {loading && (
-    <div style={{position:"fixed",inset:0,background:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:999}}>
-      <div style={{fontSize:48,marginBottom:16}}>🏋️</div>
-      <div style={{fontSize:20,fontWeight:800,color:"#FF5722",marginBottom:8}}>FORGE</div>
-      <div style={{fontSize:13,color:"#999"}}>Loading your data…</div>
-      <div style={{marginTop:20,width:48,height:4,background:"#F0F0F0",borderRadius:2,overflow:"hidden"}}>
-        <div style={{height:"100%",background:"#FF5722",borderRadius:2,animation:"ldbar 1s ease infinite alternate"}}/>
-      </div>
-      <style>{`@keyframes ldbar{from{width:10%}to{width:90%}}`}</style>
-    </div>
-  )}
 
   {/* ─── SCROLLABLE CONTENT ─── */}
   <div style={{height:"calc(100vh - 70px)",overflowY:"auto"}}>
